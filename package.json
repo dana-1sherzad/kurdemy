@@ -1,6 +1,6 @@
 {
   "name": "create-kurdemy-app",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Create a simple fullstack app with NestJS and Next.js/React",
   "main": "bin/create-kurdemy-app.js",
   "bin": {
