@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Kurdemy Logo](https://via.placeholder.com/200x80/2563eb/ffffff?text=KURDEMY)
+![Kurdemy Logo](https://i.ibb.co/ztkwj4k/logo.jpg)
 
 **Create modern fullstack applications with the Kurdemy stack**
 
