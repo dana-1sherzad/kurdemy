@@ -72,7 +72,7 @@ async function main() {
     await fs.remove(projectPath);
   }
 
-  // Configuration questions
+  // Configuration questions - REMOVED DATABASE AND ORM QUESTIONS
   const config = await inquirer.prompt([
     {
       type: 'list',
@@ -85,28 +85,6 @@ async function main() {
       default: 'nextjs'
     },
     {
-      type: 'list',
-      name: 'database',
-      message: 'Choose your database:',
-      choices: [
-        { name: 'PostgreSQL', value: 'postgresql' },
-        { name: 'MySQL', value: 'mysql' },
-        { name: 'SQLite', value: 'sqlite' },
-        { name: 'SQL Server', value: 'sqlserver' }
-      ],
-      default: 'postgresql'
-    },
-    {
-      type: 'list',
-      name: 'orm',
-      message: 'Choose your ORM:',
-      choices: [
-        { name: 'Prisma (Recommended)', value: 'prisma' },
-        { name: 'Drizzle ORM', value: 'drizzle' }
-      ],
-      default: 'prisma'
-    },
-    {
       type: 'confirm',
       name: 'trpc',
       message: 'Do you want to use tRPC for type-safe APIs?',
@@ -116,7 +94,8 @@ async function main() {
       type: 'confirm',
       name: 'auth',
       message: 'Do you want to include NextAuth.js for authentication?',
-      default: true
+      default: true,
+      when: (answers) => answers.frontend === 'nextjs' // Only show for Next.js
     },
     {
       type: 'confirm',
@@ -137,6 +116,11 @@ async function main() {
     }
   ]);
 
+  // Set auth to false if not Next.js
+  if (config.frontend !== 'nextjs') {
+    config.auth = false;
+  }
+
   // Validate configuration
   const validation = validateOptions(config);
   if (!validation.valid) {
@@ -156,22 +140,18 @@ async function main() {
     await installDependencies(projectPath, config.packageManager);
     spinner.succeed('Dependencies installed!');
 
-    // Success message
+    // Success message - REMOVED DATABASE SETUP INSTRUCTIONS
     console.log('\n' + chalk.green('🎉 Your Kurdemy app has been created successfully!\n'));
     
     console.log(chalk.bold('Next steps:'));
     console.log(chalk.gray(`  cd ${projectName}`));
-    
-    if (config.database !== 'sqlite') {
-      console.log(chalk.gray('  # Configure your database connection in .env'));
-    }
-    
-    console.log(chalk.gray('  # Setup your database'));
-    console.log(chalk.gray(`  ${config.packageManager} run db:push`));
     console.log(chalk.gray('  # Start development server'));
     console.log(chalk.gray(`  ${config.packageManager} run dev`));
     
     console.log('\n' + chalk.blue('Happy coding! 🚀'));
+    console.log('\n' + chalk.gray('Your app will be available at:'));
+    console.log(chalk.cyan('  Frontend: http://localhost:3000'));
+    console.log(chalk.cyan('  Backend:  http://localhost:4000'));
     
   } catch (error) {
     spinner.fail('Failed to create project');
