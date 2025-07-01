@@ -1,55 +1,29 @@
 {
   "name": "create-kurdemy-app",
-  "version": "1.0.15",
-  "description": "Create a new Kurdemy stack application with NestJS, Next.js, and your choice of database and styling",
+  "version": "1.0.16",
+  "description": "Create a simple fullstack app with NestJS and Next.js/React",
   "main": "bin/create-kurdemy-app.js",
   "bin": {
     "create-kurdemy-app": "./bin/create-kurdemy-app.js"
   },
   "scripts": {
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "echo \"No tests\" && exit 0"
   },
   "keywords": [
     "kurdemy",
     "nestjs",
     "nextjs",
-    "prisma",
-    "drizzle",
-    "trpc",
-    "tailwind",
+    "react",
     "typescript",
     "fullstack",
-    "cli",
-    "boilerplate"
+    "cli"
   ],
   "author": "Dana Sherzad",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/dana-1sherzad/kurdemy.git"
-  },
-  "bugs": {
-    "url": "https://github.com/dana-1sherzad/kurdemy/issues"
-  },
-  "homepage": "https://github.com/dana-1sherzad/kurdemy#readme",
-  "dependencies": {
-    "chalk": "^4.1.2",
-    "commander": "^9.4.1",
-    "inquirer": "^8.2.5",
-    "fs-extra": "^11.1.0",
-    "ora": "^5.4.1",
-    "validate-npm-package-name": "^4.0.0",
-    "execa": "^5.1.1",
-    "gradient-string": "^2.0.2"
-  },
   "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=7.0.0"
+    "node": ">=16.0.0"
   },
   "files": [
-    "bin",
-    "lib",
-    "templates",
-    "README.md"
+    "bin"
   ]
 }

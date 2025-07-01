@@ -1,172 +1,212 @@
 #!/usr/bin/env node
 
-const { Command } = require('commander');
-const inquirer = require('inquirer');
-const chalk = require('chalk');
-const ora = require('ora');
+const fs = require('fs');
 const path = require('path');
-const fs = require('fs-extra');
-const validatePackageName = require('validate-npm-package-name');
-const gradient = require('gradient-string');
-const { generateProject } = require('../lib/generator');
-const { installDependencies } = require('../lib/installer');
-const { validateOptions } = require('../lib/validator');
+const readline = require('readline');
 
-const program = new Command();
+// Simple colors without chalk
+const colors = {
+  red: (text) => `\x1b[31m${text}\x1b[0m`,
+  green: (text) => `\x1b[32m${text}\x1b[0m`,
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`,
+  blue: (text) => `\x1b[34m${text}\x1b[0m`,
+  cyan: (text) => `\x1b[36m${text}\x1b[0m`,
+  gray: (text) => `\x1b[90m${text}\x1b[0m`
+};
 
-// ASCII Art Banner
-const banner = gradient.rainbow(`
+// Simple banner
+console.log(colors.cyan(`
 ██   ██ ██    ██ ██████  ██████  ███████ ███    ███ ██    ██ 
 ██  ██  ██    ██ ██   ██ ██   ██ ██      ████  ████  ██  ██  
 █████   ██    ██ ██████  ██   ██ █████   ██ ████ ██   ████   
 ██  ██  ██    ██ ██   ██ ██   ██ ██      ██  ██  ██    ██    
 ██   ██  ██████  ██   ██ ██████  ███████ ██      ██    ██    
-                                                             
+
 Create modern fullstack applications with ease!
-`);
+`));
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+function question(text) {
+  return new Promise((resolve) => {
+    rl.question(text, resolve);
+  });
+}
 
 async function main() {
-  console.log(banner);
-  console.log(chalk.gray('Welcome to Kurdemy Stack Generator\n'));
-
-  const args = process.argv.slice(2);
-  let projectName = args[0];
-
-  // Validate project name
-  if (!projectName) {
-    const { name } = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'name',
-        message: 'What is your project name?',
-        default: 'my-kurdemy-app',
-        validate: (input) => {
-          const validation = validatePackageName(input);
-          if (validation.validForNewPackages) {
-            return true;
-          }
-          return `Invalid project name: ${validation.errors?.[0] || validation.warnings?.[0]}`;
-        }
-      }
-    ]);
-    projectName = name;
-  }
-
-  // Check if directory already exists
-  const projectPath = path.resolve(process.cwd(), projectName);
-  if (await fs.pathExists(projectPath)) {
-    const { overwrite } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'overwrite',
-        message: `Directory ${projectName} already exists. Do you want to overwrite it?`,
-        default: false
-      }
-    ]);
-
-    if (!overwrite) {
-      console.log(chalk.yellow('Operation cancelled.'));
-      process.exit(0);
-    }
-
-    await fs.remove(projectPath);
-  }
-
-  // Configuration questions - REMOVED DATABASE AND ORM QUESTIONS
-  const config = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'frontend',
-      message: 'Choose your frontend framework:',
-      choices: [
-        { name: 'Next.js (Recommended)', value: 'nextjs' },
-        { name: 'React.js', value: 'react' }
-      ],
-      default: 'nextjs'
-    },
-    {
-      type: 'confirm',
-      name: 'trpc',
-      message: 'Do you want to use tRPC for type-safe APIs?',
-      default: true
-    },
-    {
-      type: 'confirm',
-      name: 'auth',
-      message: 'Do you want to include NextAuth.js for authentication?',
-      default: true,
-      when: (answers) => answers.frontend === 'nextjs' // Only show for Next.js
-    },
-    {
-      type: 'confirm',
-      name: 'tailwind',
-      message: 'Do you want to use Tailwind CSS?',
-      default: true
-    },
-    {
-      type: 'list',
-      name: 'packageManager',
-      message: 'Choose your package manager:',
-      choices: [
-        { name: 'npm', value: 'npm' },
-        { name: 'yarn', value: 'yarn' },
-        { name: 'pnpm', value: 'pnpm' }
-      ],
-      default: 'npm'
-    }
-  ]);
-
-  // Set auth to false if not Next.js
-  if (config.frontend !== 'nextjs') {
-    config.auth = false;
-  }
-
-  // Validate configuration
-  const validation = validateOptions(config);
-  if (!validation.valid) {
-    console.log(chalk.red(`Configuration error: ${validation.error}`));
-    process.exit(1);
-  }
-
-  // Generate project
-  const spinner = ora('Creating your Kurdemy app...').start();
-  
   try {
+    // Get project name
+    const projectName = process.argv[2] || await question('Project name: ');
+    
+    if (!projectName) {
+      console.log(colors.red('Project name is required!'));
+      process.exit(1);
+    }
+
+    const projectPath = path.join(process.cwd(), projectName);
+
+    // Check if directory exists
+    if (fs.existsSync(projectPath)) {
+      const overwrite = await question(`Directory ${projectName} exists. Overwrite? (y/N): `);
+      if (overwrite.toLowerCase() !== 'y') {
+        console.log(colors.yellow('Cancelled.'));
+        process.exit(0);
+      }
+      fs.rmSync(projectPath, { recursive: true, force: true });
+    }
+
+    // Simple questions
+    const frontend = await question('Frontend (1=Next.js, 2=React): ') === '2' ? 'react' : 'nextjs';
+    const trpc = await question('Use tRPC? (y/N): ');
+    const tailwind = await question('Use Tailwind? (y/N): ');
+
+    const config = {
+      frontend,
+      trpc: trpc.toLowerCase() === 'y',
+      tailwind: tailwind.toLowerCase() === 'y',
+      auth: false // Keep it simple
+    };
+
+    console.log(colors.blue('\n🚀 Creating project...'));
+
+    // Create project
     await generateProject(projectPath, projectName, config);
-    spinner.succeed('Project structure created!');
 
-    // Install dependencies
-    spinner.start('Installing dependencies...');
-    await installDependencies(projectPath, config.packageManager);
-    spinner.succeed('Dependencies installed!');
+    console.log(colors.green('\n🎉 Project created successfully!'));
+    console.log(colors.gray('\nNext steps:'));
+    console.log(colors.gray(`  cd ${projectName}`));
+    console.log(colors.gray('  npm install'));
+    console.log(colors.gray('  npm run dev'));
 
-    // Success message - REMOVED DATABASE SETUP INSTRUCTIONS
-    console.log('\n' + chalk.green('🎉 Your Kurdemy app has been created successfully!\n'));
-    
-    console.log(chalk.bold('Next steps:'));
-    console.log(chalk.gray(`  cd ${projectName}`));
-    console.log(chalk.gray('  # Start development server'));
-    console.log(chalk.gray(`  ${config.packageManager} run dev`));
-    
-    console.log('\n' + chalk.blue('Happy coding! 🚀'));
-    console.log('\n' + chalk.gray('Your app will be available at:'));
-    console.log(chalk.cyan('  Frontend: http://localhost:3000'));
-    console.log(chalk.cyan('  Backend:  http://localhost:4000'));
-    
   } catch (error) {
-    spinner.fail('Failed to create project');
-    console.error(chalk.red('Error:'), error.message);
+    console.log(colors.red('\n❌ Error:'), error.message);
     process.exit(1);
+  } finally {
+    rl.close();
   }
 }
 
-program
-  .name('create-kurdemy-app')
-  .description('Create a new Kurdemy stack application')
-  .version('1.0.0')
-  .argument('[project-name]', 'Name of the project')
-  .action(main);
+async function generateProject(projectPath, projectName, config) {
+  // Create directories
+  const dirs = [
+    'src/backend/src',
+    'src/frontend',
+    'src/shared'
+  ];
 
-program.parse(process.argv);
+  for (const dir of dirs) {
+    fs.mkdirSync(path.join(projectPath, dir), { recursive: true });
+  }
 
-module.exports = { main };
+  // Generate package.json
+  const packageJson = {
+    name: projectName,
+    version: "0.1.0",
+    scripts: {
+      dev: "echo 'Run: npm run dev:backend & npm run dev:frontend'",
+      "dev:backend": "cd src/backend && npm run start:dev",
+      "dev:frontend": config.frontend === 'nextjs' ? "cd src/frontend && npm run dev" : "cd src/frontend && npm start"
+    },
+    workspaces: ["src/backend", "src/frontend"]
+  };
+
+  fs.writeFileSync(
+    path.join(projectPath, 'package.json'),
+    JSON.stringify(packageJson, null, 2)
+  );
+
+  // Generate backend package.json
+  const backendPackage = {
+    name: "backend",
+    version: "0.1.0",
+    scripts: {
+      "start:dev": "echo 'Backend starting...'",
+      build: "echo 'Building backend...'"
+    },
+    dependencies: {
+      "@nestjs/common": "^10.0.0",
+      "@nestjs/core": "^10.0.0"
+    }
+  };
+
+  fs.writeFileSync(
+    path.join(projectPath, 'src/backend/package.json'),
+    JSON.stringify(backendPackage, null, 2)
+  );
+
+  // Generate frontend package.json
+  const frontendPackage = {
+    name: "frontend",
+    version: "0.1.0",
+    scripts: config.frontend === 'nextjs' ? {
+      dev: "next dev",
+      build: "next build"
+    } : {
+      start: "react-scripts start",
+      build: "react-scripts build"
+    },
+    dependencies: config.frontend === 'nextjs' ? {
+      "next": "^13.5.0",
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0"
+    } : {
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0",
+      "react-scripts": "^5.0.1"
+    }
+  };
+
+  if (config.tailwind) {
+    frontendPackage.devDependencies = {
+      "tailwindcss": "^3.3.0",
+      "autoprefixer": "^10.4.0",
+      "postcss": "^8.4.0"
+    };
+  }
+
+  fs.writeFileSync(
+    path.join(projectPath, 'src/frontend/package.json'),
+    JSON.stringify(frontendPackage, null, 2)
+  );
+
+  // Generate basic files
+  fs.writeFileSync(
+    path.join(projectPath, 'README.md'),
+    `# ${projectName}\n\nA Kurdemy fullstack app.\n\n## Setup\n\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\``
+  );
+
+  fs.writeFileSync(
+    path.join(projectPath, '.gitignore'),
+    'node_modules/\n.env\ndist/\nbuild/\n.next/'
+  );
+
+  // Basic backend main file
+  fs.writeFileSync(
+    path.join(projectPath, 'src/backend/src/main.ts'),
+    `import { NestFactory } from '@nestjs/core';\nimport { AppModule } from './app.module';\n\nasync function bootstrap() {\n  const app = await NestFactory.create(AppModule);\n  await app.listen(4000);\n}\nbootstrap();`
+  );
+
+  // Basic app module
+  fs.writeFileSync(
+    path.join(projectPath, 'src/backend/src/app.module.ts'),
+    `import { Module } from '@nestjs/common';\n\n@Module({\n  imports: [],\n  controllers: [],\n  providers: [],\n})\nexport class AppModule {}`
+  );
+
+  // Basic frontend file
+  if (config.frontend === 'nextjs') {
+    fs.writeFileSync(
+      path.join(projectPath, 'src/frontend/page.tsx'),
+      `export default function Home() {\n  return <h1>Welcome to ${projectName}!</h1>;\n}`
+    );
+  } else {
+    fs.writeFileSync(
+      path.join(projectPath, 'src/frontend/src/App.tsx'),
+      `function App() {\n  return <h1>Welcome to ${projectName}!</h1>;\n}\n\nexport default App;`
+    );
+  }
+}
+
+main();
