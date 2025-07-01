@@ -1,6 +1,6 @@
 {
   "name": "create-kurdemy-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Create a new Kurdemy stack application with NestJS, Next.js, and your choice of database and styling",
   "main": "bin/create-kurdemy-app.js",
   "bin": {
@@ -12,7 +12,7 @@
   "keywords": [
     "kurdemy",
     "nestjs",
-    "nextjs", 
+    "nextjs",
     "prisma",
     "drizzle",
     "trpc",
