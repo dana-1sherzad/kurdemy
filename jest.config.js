@@ -1,4 +1,3 @@
-
 // jest.config.js - Jest Configuration
 
 module.exports = {
